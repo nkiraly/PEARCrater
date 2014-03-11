@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<project name="PEARCrater" basedir="." default="make">
+<!--
+  PEARCrater build definition
+
+  @license http://www.opensource.org/licenses/bsd-license.php Simplified BSD License
+  @author Nicholas J Kiraly <kiraly.nicholas@gmail.com>
+  
+  https://github.com/nkiraly/PEARCrater
+
+
+  PEAR Dependencies:
+pear channel-discover pear.symfony-project.com
+pear channel-discover pear.symfony.com
+pear channel-discover pear.pdepend.org
+pear channel-discover pear.phpmd.org
+pear channel-discover pear.phpunit.de
+pear channel-discover pear.phpdoc.org
+pear channel-discover pear.phing.info
+pear install \-\-alldeps phing/phing
+pear install channel://pear.php.net/VersionControl_SVN-0.5.1
+pear install channel://pear.php.net/VersionControl_Git-0.4.4
+pear install phpunit/PHPUnit-3.7.32
+pear install channel://pear.php.net/Console_ProgressBar-0.5.2beta
+pear install channel://pear.php.net/XML_Serializer-0.20.2
+pear upgrade PhpDocumentor
+pear channel-discover pear.pirum-project.org
+pear install pirum/Pirum
+pear install PEAR_PackageFileManager2-1.0.2
+pear channel-discover pear.dbsteward.org
+
+-->
+
+  <!-- use PEARCrater from self for packaging of self -->
+  <taskdef classpath="${project.basedir}" name="PEARCrater" classname="PEARCraterTask" />
+
+  <property file=".config.properties" override="true" />
+
+  <property name="directory.build" value="${project.basedir}/build" />
+  <property name="directory.package" value="${project.basedir}/package" />
+  <property name="directory.apidocs" value="${project.basedir}/apidocs" />
+
+  <fileset dir="${directory.root}">
+    <patternset id="files.package">
+      <include name="LICENSE" />
+      <include name="README" />
+      <include name="PEARCraterTask.php" />
+      <include name="PEARCraterTask/**" />
+    </patternset>
+  </fileset>
+
+  <fileset dir="${directory.root}">
+    <!-- this is a list of files that we absolutely don't want to include in our releases -->
+    <patternset id="files.exclusion">
+      <exclude name="build.xml" />
+      <exclude name=".config.properties" />
+      <exclude name="tools/**" />
+      <exclude name="build/**" />
+      <exclude name="**/*.tar.gz" />
+      <exclude name="**/.svn" />
+      <exclude name="**/.svn/**" />
+      <exclude name="**/*.diff" />
+      <exclude name="**/*.log" />
+      <exclude name="**/.*.swp" />
+    </patternset>
+  </fileset>
+
+  <target name="build">
+    <delete dir="${directory.build}" />
+    <copy todir="${directory.build}">
+      <fileset dir="${project.basedir}" expandsymboliclinks="true">
+        <patternset refid="files.package" />
+        <patternset refid="files.exclusion" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="make_package" depends="build">
+    <PEARCrater dir="${directory.build}" baseinstalldir="/">
+      <name>PEARCrater</name>
+      <summary>PEAR Packaging Tool for Creating PEAR Packages with Phing</summary>
+      <channel>pear.dbsteward.org</channel>
+      <description>
+            <!-- Don't exceed 48 char width -->
+PEAR Package building as part of Phing build.xml definitions
+
+      </description>
+
+      <lead user="nkiraly" name="Nicholas Kiraly" email="kiraly.nicholas@gmail.com" />
+
+      <license>http://www.opensource.org/licenses/bsd-license.php Simplified BSD License</license>
+
+      <version release="${package.version}" api="${package.api_version}" />
+      <stability release="stable" api="stable" />
+
+      <dependencies>
+        <php minimum_version="5.3.0" />
+        <pear minimum_version="1.9.0" />
+      </dependencies>
+
+      <!-- there must be a changelog entry for the package.version or pear package manager will be angry -->
+
+      <changelog version="1.0.0" date="2014-03-10" license="Simplified BSD License">
+PEARCrater 1.0.0 Release
+
+Changes
+* Initial Release in support of DBSteward PEAR packaging
+
+      </changelog>
+    </PEARCrater>
+  </target>
+
+  <target name="make" depends="make_package">
+    <echo msg="Creating PEAR archive" />
+    <delete file="${project.basedir}/PEARCrater-${package.version}.tgz" />
+    <delete dir="${directory.package}" />
+    <mkdir dir="${directory.package}/PEARCrater-${package.version}" />
+    <copy todir="${directory.package}/PEARCrater-${package.version}">
+      <fileset dir="${directory.build}">
+        <include name="**" />
+      </fileset>
+    </copy>
+    <move file="${directory.package}/PEARCrater-${package.version}/package.xml" todir="${directory.package}/"/>
+    <tar compression="gzip" destfile="${project.basedir}/PEARCrater-${package.version}.tgz" basedir="${directory.package}" />
+  </target>
+
+  <target name="docs" depends="build">
+    <echo msg="Creating documentation" />
+    <phpdoc title="PEARCrater Docs"
+      destdir="${directory.apidocs}"
+      sourcecode="${directory.build}"
+      output="HTML:frames:DOM/earthli"
+    >
+    <fileset dir="${directory.build}">
+      <include name="**" />
+    </fileset>
+    </phpdoc>
+  </target>
+
+  <target name="tests" depends="build">
+    <phpunit haltonerror="true">
+      <formatter type="plain" usefile="false"/>
+      <batchtest>
+        <fileset dir="tests">
+          <include name="**/*Test.php"/>
+        </fileset>
+      </batchtest>
+    </phpunit>
+  </target>
+
+  <target name="clean">
+    <echo message="Removing build directory..." />
+    <delete dir="${directory.build}/**" />
+    <delete dir="${directory.build}/" />
+    <echo message="" />
+
+    <echo message="Removing package directory..." />
+    <delete dir="${directory.package}/**" />
+    <delete dir="${directory.package}/" />
+    <echo message="" />
+
+    <echo message="Removing apidocs directory..." />
+    <delete dir="${directory.apidocs}/**" />
+    <delete dir="${directory.apidocs}/" />
+    <echo message="" />
+
+    <echo message="Removing testdata contents..." />
+    <delete dir="${project.basedir}/tests/testdata/**" />
+    <echo message="" />
+  </target>
+
+</project>
