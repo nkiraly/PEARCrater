@@ -65,6 +65,7 @@ class PEARCraterTask extends Task {
    * Main entry point for PEARCrater Task
    */
   public function main() {
+    // refer to http://pear.php.net/package/PEAR_PackageFileManager2/docs/latest/PEAR_PackageFileManager2/PEAR_PackageFileManager2.html
     PEAR_Frontend::setFrontendObject(new PEARCraterTask_Frontend($this));
     $package = new PEAR_PackageFileManager2();
     $this->_initOptions();
